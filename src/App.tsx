@@ -42,15 +42,16 @@ function ProgressBar({ value, target }: { value: number, target: number }) {
 
 function App() {
   const [files, setFiles] = useState<FileList | null>(null);
-  const [fileProcessed, setFilesProcessed] = useState<number>(0);
+  const [filesProcessed, setFilesProcessed] = useState<number>(0);
 
   const processFiles = (files: FileList | null) => {
     if(!files) {
       return
     }
-    for(let i=0; i<files.length; i++) {
-      // TODO: Process files
-      setInterval(() => setFilesProcessed(fileProcessed+1), 1000);
+    let numOfFiles = files.length;
+    for(let i=0; i<numOfFiles; i++) {
+      // TODO: Process file
+      setFilesProcessed(filesProcessed + 1);
     }
   }
 
@@ -80,7 +81,7 @@ function App() {
 
         </div>
         <div className="flex flex-col items-center w-full">
-        {files && <ProgressBar value={fileProcessed} target={files.length} />}
+        {files && <ProgressBar value={filesProcessed} target={files.length} />}
         </div>
 
       </div>
