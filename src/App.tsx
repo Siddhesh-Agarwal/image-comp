@@ -43,19 +43,51 @@ function ProgressBar({ value, target }: { value: number, target: number }) {
 function App() {
   const [files, setFiles] = useState<FileList | null>(null);
   const [filesProcessed, setFilesProcessed] = useState<number>(0);
+  const [currentlyProcessing, setCurrentlyProcessing] = useState<string | null>(null);
 
-  const processFiles = (files: FileList | null) => {
-    if(!files) {
-      return
+  const processFiles = async (files: FileList | null) => {
+    if (!files) {
+      return;
     }
-    let numOfFiles = files.length;
-    for(let i=0; i<numOfFiles; i++) {
-      // TODO: Process file
-      setFilesProcessed(filesProcessed + 1);
+    const numOfFiles = files.length;
+    const compressedFiles: File[] = [];
+    for (let i = 0; i < numOfFiles; i++) {
+      const file = files.item(i);
+      if (file === null) {
+        break;
+      }
+      setCurrentlyProcessing(file.name);
+      try {
+        compressImage(file)
+          .then((compressedFile) => (compressedFiles[i] = compressedFile))
+          .catch((err) => { console.error(err) });
+        // Simulate saving or further processing the compressed image
+        console.log(`Compressed image for ${file.name} is ready for further processing.`);
+
+        setFilesProcessed((prev) => prev + 1);
+      } catch (error) {
+        console.error(`Error processing file ${file.name}:`, error);
+      }
     }
+    setCurrentlyProcessing(null);
   }
 
-  useEffect(() => processFiles(files), [files])
+  // A mock function to simulate image compression
+  const compressImage = async (image: File): Promise<File> => {
+    const oldFileSize = image.size;
+    return new Promise((resolve, reject) => {
+      if (!image.type.startsWith("image")) {
+        reject("Only images are accepted")
+      }
+      if (!image.type.match(/(jpeg)|(jpg)|(png)/i)) {
+        reject("Only PNG, JPG and JPEG are accepted")
+      }
+
+      // TODO: Compress image
+    })
+  }
+
+  useEffect(() => { processFiles(files) }, [files])
 
   return (
     <div className='min-h-screen flex flex-col justify-between'>
@@ -69,19 +101,21 @@ function App() {
           <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full max-w-xl h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
               </svg>
               <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                 <span className="font-semibold">Click to upload</span> or drag and drop
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG or JPEG (MAX. 800x400px)</p>
             </div>
-            <input id="dropzone-file" type="file" className="hidden" multiple onChange={(e) => setFiles(e.target.files)} />
+            <input id="dropzone-file" type="file" className="hidden" accept=".png,.jpg,.jpeg" multiple onChange={(e) => setFiles(e.target.files)} />
           </label>
-
         </div>
+
+        {/* Progress Bar */}
         <div className="flex flex-col items-center w-full">
-        {files && <ProgressBar value={filesProcessed} target={files.length} />}
+          {currentlyProcessing && <p className="text-base">Processing {currentlyProcessing}...</p>}
+          {files && <ProgressBar value={filesProcessed} target={files.length} />}
         </div>
 
       </div>
