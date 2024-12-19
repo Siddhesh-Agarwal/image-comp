@@ -26,19 +26,6 @@ function Footer() {
   )
 }
 
-function ProgressBar({ value, target }: { value: number, target: number }) {
-  const percentage = (value / target) * 100;
-
-  return (
-    <div className="w-full max-w-2xl bg-gray-200 rounded-full h-4">
-      <div
-        className="bg-blue-600 h-4 rounded-full"
-        style={{ width: `${percentage}%` }}
-      ></div>
-    </div>
-  );
-}
-
 
 function App() {
   const [files, setFiles] = useState<FileList | null>(null);
@@ -61,8 +48,6 @@ function App() {
         compressImage(file)
           .then((compressedFile) => (compressedFiles[i] = compressedFile))
           .catch((err) => { console.error(err) });
-        // Simulate saving or further processing the compressed image
-        console.log(`Compressed image for ${file.name} is ready for further processing.`);
 
         setFilesProcessed((prev) => prev + 1);
       } catch (error) {
@@ -74,7 +59,7 @@ function App() {
 
   // A mock function to simulate image compression
   const compressImage = async (image: File): Promise<File> => {
-    const oldFileSize = image.size;
+    // const oldFileSize = image.size;
     return new Promise((resolve, reject) => {
       if (!image.type.startsWith("image")) {
         reject("Only images are accepted")
@@ -84,6 +69,8 @@ function App() {
       }
 
       // TODO: Compress image
+      const compressedImage = image;
+      resolve(compressedImage)
     })
   }
 
@@ -114,8 +101,13 @@ function App() {
 
         {/* Progress Bar */}
         <div className="flex flex-col items-center w-full">
-          {currentlyProcessing && <p className="text-base">Processing {currentlyProcessing}...</p>}
-          {files && <ProgressBar value={filesProcessed} target={files.length} />}
+          {
+            files && (
+              <progress value={filesProcessed} max={files.length} className="w-full max-w-2xl rounded">
+                Processing {currentlyProcessing} ({filesProcessed}/{files.length})...
+              </progress>
+            )
+          }
         </div>
 
       </div>
