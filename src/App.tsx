@@ -1,6 +1,7 @@
 import HeartIcon from "./assets/heart.svg"
 import GitHubIcon from "./assets/github.svg"
 import { useEffect, useState } from "react"
+import JSZip, { } from "jszip"
 
 
 function Header() {
@@ -18,7 +19,7 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="bg-blue-200 text-center w-full py-4">
+    <footer className="bg-blue-200 text-center w-full py-4 mt-4">
       <h1 className='font-bold'>
         Made by <a href="https://github.com/Siddhesh-Agarwal" target="_blank" rel="noreferrer" className='underline text-blue-600'>Siddhesh Agarwal</a> with <img src={HeartIcon} alt="Heart" className='w-4 h-4 inline' />
       </h1>
@@ -31,13 +32,14 @@ function App() {
   const [files, setFiles] = useState<FileList | null>(null);
   const [filesProcessed, setFilesProcessed] = useState<number>(0);
   const [currentlyProcessing, setCurrentlyProcessing] = useState<string | null>(null);
+  const [zipFile, setZipFile] = useState<Blob | null>(null);
 
-  const processFiles = async (files: FileList | null) => {
+  async function processFiles(files: FileList | null) {
     if (!files) {
       return;
     }
     const numOfFiles = files.length;
-    const compressedFiles: File[] = [];
+    let compressedFiles: File[] = [];
     for (let i = 0; i < numOfFiles; i++) {
       const file = files.item(i);
       if (file === null) {
@@ -45,33 +47,38 @@ function App() {
       }
       setCurrentlyProcessing(file.name);
       try {
-        compressImage(file)
-          .then((compressedFile) => (compressedFiles[i] = compressedFile))
-          .catch((err) => { console.error(err) });
-
+        compressedFiles[i] = compressImage(file);
         setFilesProcessed((prev) => prev + 1);
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
       }
     }
+    // Reset the state
     setCurrentlyProcessing(null);
+    // Filter out the null values
+    compressedFiles = compressedFiles.filter((file) => file !== null);
+    // convert the array to a zip file
+    const zip = new JSZip();
+    compressedFiles.forEach((file) => {
+      zip.file(file.name, file);
+    });
+    // Generate the zip file
+    setZipFile(await zip.generateAsync({ type: "blob" }));
   }
 
   // A mock function to simulate image compression
-  const compressImage = async (image: File): Promise<File> => {
-    // const oldFileSize = image.size;
-    return new Promise((resolve, reject) => {
-      if (!image.type.startsWith("image")) {
-        reject("Only images are accepted")
-      }
-      if (!image.type.match(/(jpeg)|(jpg)|(png)/i)) {
-        reject("Only PNG, JPG and JPEG are accepted")
-      }
+  function compressImage(file: File): File {
+    // check if the file is an image
+    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+    if (!validTypes.includes(file.type)) {
+      throw new Error("Invalid file type");
+    }
 
-      // TODO: Compress image
-      const compressedImage = image;
-      resolve(compressedImage)
-    })
+    // TODO: image compression
+    const compressedFileBlob = file; // update the logic
+    const compressedFileOptions: FilePropertyBag = { type: file.type, lastModified: file.lastModified };
+    const compressedFile = new File([compressedFileBlob], file.name, compressedFileOptions);
+    return compressedFile;
   }
 
   useEffect(() => { processFiles(files) }, [files])
@@ -106,6 +113,13 @@ function App() {
               <progress value={filesProcessed} max={files.length} className="w-full max-w-2xl rounded">
                 Processing {currentlyProcessing} ({filesProcessed}/{files.length})...
               </progress>
+            )
+          }
+          {
+            zipFile && (
+              <a href={URL.createObjectURL(zipFile)} download="compressed_images.zip" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mt-4">
+                Download Compressed Images
+              </a>
             )
           }
         </div>
